@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Скорочитайка - Развитие скорочтения у детей</title>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // Импортируем Firebase модули
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+        // Конфигурация Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCApGTxPoGJlNDQByASNPlu_XAIpv2z6LI",
+            authDomain: "speedtr-75911.firebaseapp.com",
+            projectId: "speedtr-75911",
+            storageBucket: "speedtr-75911.firebasestorage.app",
+            messagingSenderId: "447910342060",
+            appId: "1:447910342060:web:18fad38b7493e23efd1e09"
+        };
+
+        // Инициализация
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        // Глобальные данные
+        window.currentUser = null;
+        
+        // Структура достижений
+        const defaultAchievements = {
+            runningWordsCompleted: false,
+            memoryMaster: false,
+            level1Passed: false,
+            level2Passed: false,
+            level3Passed: false,
+            allTestsPassed: false,
+            textsPassed: []  // массив индексов пройденных текстов
+        };
+
+        // Библиотека слов
+        const wordsLibrary = {
+            1: ["кот", "дом", "лес", "море", "река", "луна", "звезда", "снег", "дождь", "ветер", "мир", "друг", "книга", "ручка", "стол", "стул", "окно", "дверь", "мама", "папа", "брат", "сестра", "школа", "игра", "мяч", "кукла", "машина", "солнце", "небо", "облако"],
+            2: ["солнце", "месяц", "звезда", "радуга", "цветок", "дерево", "птица", "бабочка", "велосипед", "компьютер", "телефон", "планшет", "карандаш", "пенал", "портфель", "учитель", "ученик", "перемена", "завтрак", "обед", "ужин", "мороженое", "шоколад", "печенье", "котенок", "щенок", "рыбка", "попугай", "ромашка", "василек"],
+            3: ["скорочтение", "развитие", "внимание", "память", "интеллект", "образование", "литература", "хрестоматия", "упражнение", "достижение", "компьютер", "телевизор", "микрофон", "клавиатура", "монитор", "процессор", "оперативная", "система", "приложение", "авторизация", "конструктор", "вдохновение", "путешествие", "приключение", "воображение", "концентрация", "результат", "способность", "эрудиция", "фантазия"]
+        };
+
+        // Тексты для памяти
+        const memoryTexts = [
+            { id: 0, title: "Лисёнок и ёжик", text: "В лесу жил маленький лисёнок. Однажды он встретил ёжика. Ёжик нёс на спине гриб. Лисёнок удивился и спросил: 'Зачем тебе гриб?' Ёжик ответил: 'Я делаю запасы на зиму. Зимой будет холодно и голодно, поэтому я собираю грибы и ягоды.' Лисёнок тоже решил сделать запасы. Он набрал полную корзину яблок. Друзья пошли вместе к ручью пить воду. Вода была холодная и вкусная. Лисёнок сказал: 'Как хорошо иметь друга!' Ёжик кивнул и улыбнулся. С тех пор они стали лучшими друзьями и помогали друг другу.", questions: ["Кого встретил лисёнок?", "Что нёс ёжик на спине?", "Что решил сделать лисёнок?", "Что набрал лисёнок в корзину?", "Почему ёжик делал запасы?"], answers: ["ёжика", "гриб", "запасы", "яблок", "зимой голодно"] },
+            { id: 1, title: "Умная ворона", text: "На дереве сидела ворона. В клюве она держала кусочек сыра. Мимо пробежала лиса. Лиса захотела сыр и сказала: 'Какая ты красивая ворона! Спой мне!' Ворона обрадовалась, открыла клюв и закаркала. Сыр упал лисе в лапы. Лиса убежала. Ворона поняла, что её обманули из-за хвастовства.", questions: ["Что держала ворона в клюве?", "Кто захотел сыр?", "Что попросила лиса?", "Что случилось с сыром?", "Почему ворона потеряла сыр?"], answers: ["сыр", "лиса", "спеть", "упал", "хвастовство"] },
+            { id: 2, title: "Дружба кролика и белки", text: "В лесу жили кролик и белка. Однажды пошёл сильный дождь. Норка кролика залилась водой. Белка позвала кролика в своё дупло. Там было сухо. Они пили чай с малиной. Кролик помог белке собрать орехи. Их дружба стала крепче.", questions: ["Кто помог кролику?", "Куда позвала белка?", "Чем пили чай?", "Чем помог кролик?", "Чему научила история?"], answers: ["белка", "дупло", "малина", "орехи", "дружба"] },
+            { id: 3, title: "Волшебная кисточка", text: "У Маши была волшебная кисточка. Всё, что она рисовала, оживало. Она нарисовала цветок - он зацвёл. Но когда нарисовала много конфет и съела их, у неё заболел живот. Мама сказала: 'Волшебство нужно использовать для помощи другим'.", questions: ["Что умела кисточка?", "Что случилось с цветком?", "Почему заболел живот?", "Какой урок дала мама?", "Что нужно делать с волшебством?"], answers: ["оживлять", "зацвёл", "конфеты", "помогать", "помощь"] },
+            { id: 4, title: "Храбрый муравей", text: "Маленький муравей спас брата из ловушки, перегрызя верёвку. Потом начался пожар, и муравей помог перенести яйца. Королева сказала: 'Размер не важен, важна смелость и доброта'.", questions: ["Кого спас муравей?", "Как спас?", "Что случилось потом?", "Кто сказал про смелость?", "Каким стал муравей?"], answers: ["брата", "перегрыз", "пожар", "королева", "герой"] }
+        ];
+
+        // Функции работы с достижениями
+        async function loadAchievements(userId) {
+            if (!userId) return defaultAchievements;
+            const userRef = doc(db, "users", userId);
+            const docSnap = await getDoc(userRef);
+            if (docSnap.exists() && docSnap.data().achievements) {
+                window.userAchievements = docSnap.data().achievements;
+            } else {
+                window.userAchievements = { ...defaultAchievements };
+                await saveAchievements(userId);
+            }
+            return window.userAchievements;
+        }
+
+        async function saveAchievements(userId) {
+            if (!userId) return;
+            const userRef = doc(db, "users", userId);
+            await setDoc(userRef, { 
+                achievements: window.userAchievements, 
+                email: window.currentUser?.email, 
+                name: window.currentUser?.displayName 
+            }, { merge: true });
+        }
+
+        async function updateAchievement(userId, updates) {
+            if (!userId) return;
+            Object.assign(window.userAchievements, updates);
+            await saveAchievements(userId);
+            updateAchievementsUI();
+        }
+
+        // Обновление UI достижений
+        function updateAchievementsUI() {
+            const container = document.getElementById('achievementsList');
+            if (!container || !window.userAchievements) return;
+            const a = window.userAchievements;
+            container.innerHTML = `
+                <div class="achieve-card ${a.runningWordsCompleted ? 'unlocked' : 'locked'}">
+                    <div class="achieve-icon">🏃</div>
+                    <div class="achieve-info">
+                        <h4>Чтец-молодец</h4>
+                        <p>Пройти упражнение "Бегущие слова" на любом уровне</p>
+                        ${a.runningWordsCompleted ? '<span class="badge">✅ Получено</span>' : '<span class="badge locked">🔒 Не получено</span>'}
+                    </div>
+                </div>
+                <div class="achieve-card ${a.memoryMaster ? 'unlocked' : 'locked'}">
+                    <div class="achieve-icon">🧠</div>
+                    <div class="achieve-info">
+                        <h4>Знаток памяти</h4>
+                        <p>Ответить правильно на 4 из 5 вопросов любого текста</p>
+                        ${a.memoryMaster ? '<span class="badge">✅ Получено</span>' : '<span class="badge locked">🔒 Не получено</span>'}
+                    </div>
+                </div>
+                <div class="achieve-card ${a.level1Passed && a.level2Passed && a.level3Passed ? 'unlocked' : 'locked'}">
+                    <div class="achieve-icon">⭐</div>
+                    <div class="achieve-info">
+                        <h4>Мастер слов</h4>
+                        <p>Пройти все 3 уровня "Бегущих слов"</p>
+                        ${(a.level1Passed && a.level2Passed && a.level3Passed) ? '<span class="badge">✅ Получено</span>' : '<span class="badge locked">🔒 Не получено</span>'}
+                    </div>
+                </div>
+                <div class="achieve-card ${a.allTestsPassed ? 'unlocked' : 'locked'}">
+                    <div class="achieve-icon">📚</div>
+                    <div class="achieve-info">
+                        <h4>Эрудит</h4>
+                        <p>Пройти все 5 текстов на память</p>
+                        ${a.allTestsPassed ? '<span class="badge">✅ Получено</span>' : '<span class="badge locked">🔒 Не получено</span>'}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Навигация между страницами
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+            document.getElementById(pageId).classList.add('active-page');
+            
+            // Обновляем активное меню
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('data-page') === pageId) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // Обновляем данные на страницах при переключении
+            if (pageId === 'profilePage' && window.currentUser) {
+                document.getElementById('profileUserName').innerText = window.currentUser.displayName || window.currentUser.email?.split('@')[0] || "Читатель";
+                document.getElementById('profileEmail').innerText = window.currentUser.email || "Не указан";
+                updateAchievementsUI();
+            }
+            if (pageId === 'runningPage') {
+                document.getElementById('runningWord').innerText = "▶ Нажми «Старт»";
+                stopRunningWords();
+            }
+        }
+
+        // Авторизация
+        let isLoginMode = true;
+        window.toggleAuthMode = function() {
+            isLoginMode = !isLoginMode;
+            const formTitle = document.getElementById('formTitle');
+            const nameField = document.getElementById('registerNameGroup');
+            const submitBtn = document.getElementById('submitAuthBtn');
+            const toggleLink = document.getElementById('toggleAuthLink');
+            
+            if (isLoginMode) {
+                formTitle.innerText = 'Войти в Скорочитайку';
+                nameField.style.display = 'none';
+                submitBtn.innerText = 'Войти';
+                toggleLink.innerHTML = 'Нет аккаунта? <a href="#" onclick="toggleAuthMode(); return false;">Зарегистрироваться</a>';
+            } else {
+                formTitle.innerText = 'Создать аккаунт';
+                nameField.style.display = 'block';
+                submitBtn.innerText = 'Зарегистрироваться';
+                toggleLink.innerHTML = 'Уже есть аккаунт? <a href="#" onclick="toggleAuthMode(); return false;">Войти</a>';
+            }
+        };
+
+        window.signInWithGoogle = async function() {
+            try {
+                const result = await signInWithPopup(auth, googleProvider);
+                window.currentUser = result.user;
+                await loadAchievements(result.user.uid);
+                showPage('mainMenuPage');
+            } catch (err) {
+                alert('Ошибка: ' + err.message);
+            }
+        };
+
+        window.handleAuthSubmit = async function() {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            if (!email || !password) {
+                alert('Заполните email и пароль');
+                return;
+            }
+            if (isLoginMode) {
+                try {
+                    const userCred = await signInWithEmailAndPassword(auth, email, password);
+                    window.currentUser = userCred.user;
+                    await loadAchievements(userCred.user.uid);
+                    showPage('mainMenuPage');
+                } catch (err) {
+                    alert('Ошибка входа: ' + err.message);
+                }
+            } else {
+                const name = document.getElementById('registerName').value;
+                if (!name) {
+                    alert('Введите имя');
+                    return;
+                }
+                try {
+                    const userCred = await createUserWithEmailAndPassword(auth, email, password);
+                    await updateProfile(userCred.user, { displayName: name });
+                    window.currentUser = userCred.user;
+                    window.userAchievements = { ...defaultAchievements };
+                    await saveAchievements(userCred.user.uid);
+                    showPage('mainMenuPage');
+                } catch (err) {
+                    alert('Ошибка регистрации: ' + err.message);
+                }
+            }
+        };
+
+        window.logoutUser = async function() {
+            await signOut(auth);
+            showPage('loginPage');
+        };
+
+        // --- Упражнение 1: Бегущие слова ---
+        let runningInterval = null;
+        let runningActive = false;
+        let runningWords = [];
+        let runningIndex = 0;
+        let currentSpeedMs = 400;
+
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        if (speedSlider) {
+            speedSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                currentSpeedMs = 850 - val;
+                const wordsPerMin = Math.round(60000 / currentSpeedMs);
+                speedValue.innerText = wordsPerMin + " сл/мин";
+                if (runningActive && runningInterval) {
+                    clearInterval(runningInterval);
+                    startRunningLoop();
+                }
+            });
+        }
+
+        function startRunningLoop() {
+            if (!runningActive) return;
+            const display = document.getElementById('runningWord');
+            runningInterval = setInterval(() => {
+                if (!runningActive) return;
+                if (runningIndex >= runningWords.length) {
+                    clearInterval(runningInterval);
+                    runningActive = false;
+                    display.innerText = "🏆 Уровень пройден! 🏆";
+                    const currentLevel = parseInt(document.getElementById('levelSelect').value);
+                    const updates = {};
+                    if (currentLevel === 1 && !window.userAchievements.level1Passed) updates.level1Passed = true;
+                    if (currentLevel === 2 && !window.userAchievements.level2Passed) updates.level2Passed = true;
+                    if (currentLevel === 3 && !window.userAchievements.level3Passed) updates.level3Passed = true;
+                    if (!window.userAchievements.runningWordsCompleted) updates.runningWordsCompleted = true;
+                    if (Object.keys(updates).length > 0 && window.currentUser) {
+                        updateAchievement(window.currentUser.uid, updates);
+                    }
+                    document.getElementById('startRunningBtn').disabled = false;
+                    document.getElementById('stopRunningBtn').disabled = true;
+                    return;
+                }
+                display.innerText = runningWords[runningIndex];
+                runningIndex++;
+            }, currentSpeedMs);
+        }
+
+        window.startRunningWords = function() {
+            if (runningInterval) clearInterval(runningInterval);
+            runningActive = true;
+            const level = parseInt(document.getElementById('levelSelect').value);
+            runningWords = [...wordsLibrary[level]];
+            runningIndex = 0;
+            startRunningLoop();
+            document.getElementById('startRunningBtn').disabled = true;
+            document.getElementById('stopRunningBtn').disabled = false;
+        };
+
+        window.stopRunningWords = function() {
+            if (runningInterval) clearInterval(runningInterval);
+            runningActive = false;
+            document.getElementById('runningWord').innerText = "⏸️ Остановлено";
+            document.getElementById('startRunningBtn').disabled = false;
+            document.getElementById('stopRunningBtn').disabled = true;
+        };
+
+        // --- Упражнение 2: Память ---
+        let currentMemoryIndex = 0;
+        
+        function loadMemoryText(index) {
+            const data = memoryTexts[index];
+            document.getElementById('memoryTitle').innerText = data.title;
+            document.getElementById('memoryTextBody').innerText = data.text;
+            const questionsDiv = document.getElementById('memoryQuestions');
+            questionsDiv.innerHTML = '';
+            data.questions.forEach((q, i) => {
+                const qDiv = document.createElement('div');
+                qDiv.className = 'question-item';
+                qDiv.innerHTML = `<p><strong>Вопрос ${i+1}:</strong> ${q}</p>
+                                 <input type="text" id="memAns${i}" placeholder="Напиши ответ" class="answer-input">`;
+                questionsDiv.appendChild(qDiv);
+            });
+            currentMemoryIndex = index;
+            document.getElementById('memoryFeedback').innerHTML = '';
+        }
+
+        window.checkMemoryAnswers = async function() {
+            if (!window.currentUser) return;
+            const data = memoryTexts[currentMemoryIndex];
+            let correctCount = 0;
+            for (let i = 0; i < data.questions.length; i++) {
+                const userAnswer = document.getElementById(`memAns${i}`).value.trim().toLowerCase();
+                const correctAnswer = data.answers[i].toLowerCase();
+                if (userAnswer.includes(correctAnswer) || correctAnswer.includes(userAnswer) || userAnswer === correctAnswer) {
+                    correctCount++;
+                }
+            }
+            const feedback = document.getElementById('memoryFeedback');
+            const updates = {};
+            
+            if (correctCount >= 4) {
+                if (!window.userAchievements.textsPassed.includes(currentMemoryIndex)) {
+                    window.userAchievements.textsPassed.push(currentMemoryIndex);
+                }
+                if (!window.userAchievements.memoryMaster) updates.memoryMaster = true;
+                
+                if (window.userAchievements.textsPassed.length === memoryTexts.length && !window.userAchievements.allTestsPassed) {
+                    updates.allTestsPassed = true;
+                    feedback.innerHTML = `<div class="success">🎉 Поздравляю! ${correctCount}/5. Ты прошёл ВСЕ тексты! Достижение "Эрудит" получено!</div>`;
+                } else {
+                    feedback.innerHTML = `<div class="success">🎉 Молодец! ${correctCount}/5 правильных ответов. Достижение "Знаток памяти" разблокировано!</div>`;
+                }
+                if (Object.keys(updates).length > 0) {
+                    await updateAchievement(window.currentUser.uid, updates);
+                } else if (window.userAchievements.memoryMaster) {
+                    feedback.innerHTML = `<div class="success">🎉 Отлично! ${correctCount}/5 правильных ответов. Ты уже получил это достижение!</div>`;
+                }
+            } else {
+                feedback.innerHTML = `<div class="error">📖 Правильных ответов: ${correctCount}/5. Попробуй ещё раз, будь внимательнее!</div>`;
+            }
+        };
+
+        window.nextMemoryText = function() {
+            let next = (currentMemoryIndex + 1) % memoryTexts.length;
+            loadMemoryText(next);
+        };
+        window.prevMemoryText = function() {
+            let prev = (currentMemoryIndex - 1 + memoryTexts.length) % memoryTexts.length;
+            loadMemoryText(prev);
+        };
+
+        // Отслеживание состояния авторизации
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                window.currentUser = user;
+                await loadAchievements(user.uid);
+                showPage('mainMenuPage');
+                loadMemoryText(0);
+            } else {
+                window.currentUser = null;
+                window.userAchievements = { ...defaultAchievements };
+                showPage('loginPage');
+            }
+        });
+
+        // Инициализация
+        window.onload = () => {
+            window.toggleAuthMode();
+            if (speedSlider) {
+                const initVal = 450;
+                speedSlider.value = initVal;
+                currentSpeedMs = 850 - initVal;
+                speedValue.innerText = Math.round(60000 / currentSpeedMs) + " сл/мин";
+            }
+        };
+    </script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif; }
+        body { background: linear-gradient(135deg, #f0f8ff 0%, #e3f0ff 100%); min-height: 100vh; }
+        
+        /* Шапка с навигацией */
+        .navbar {
+            background: #0a2f6c;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .logo-small {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .nav-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .nav-item {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            padding: 8px 18px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+        .nav-item:hover, .nav-item.active {
+            background: white;
+            color: #0a2f6c;
+        }
+        .logout-btn {
+            background: rgba(255,100,100,0.8);
+        }
+        .logout-btn:hover {
+            background: #ff4444;
+            color: white;
+        }
+        
+        .page {
+            display: none;
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+        .active-page { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .card {
+            background: white;
+            border-radius: 32px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+        h1 { color: #0a2f6c; margin-bottom: 20px; }
+        h2 { color: #0a2f6c; margin-bottom: 20px; border-left: 5px solid #0a2f6c; padding-left: 15px; }
+        
+        /* Главное меню */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+        .menu-card {
+            background: linear-gradient(135deg, #e8f0fe, #d4e4ff);
+            border-radius: 32px;
+            padding: 35px 25px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            text-decoration: none;
+            color: #0a2f6c;
+        }
+        .menu-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        .menu-icon { font-size: 3.5rem; margin-bottom: 15px; }
+        .menu-card h3 { font-size: 1.5rem; margin-bottom: 10px; }
+        
+        /* Достижения */
+        .achieve-card {
+            display: flex;
+            gap: 18px;
+            background: #f8fafd;
+            padding: 18px;
+            border-radius: 24px;
+            margin-bottom: 15px;
+            border: 1px solid #e0ecff;
+        }
+        .achieve-card.unlocked { background: #e8f5e9; border-color: #4caf50; }
+        .achieve-icon { font-size: 2.5rem; }
+        .achieve-info h4 { margin-bottom: 5px; color: #0a2f6c; }
+        .achieve-info p { font-size: 0.85rem; color: #666; }
+        .badge { display: inline-block; margin-top: 8px; font-size: 0.75rem; background: #4caf50; color: white; padding: 3px 10px; border-radius: 20px; }
+        .badge.locked { background: #ccc; }
+        
+        .running-word {
+            background: #eef5ff;
+            padding: 45px;
+            text-align: center;
+            font-size: 3rem;
+            font-weight: bold;
+            border-radius: 48px;
+            margin: 20px 0;
+            min-height: 160px;
+        }
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+            background: #f4f9ff;
+            padding: 12px 20px;
+            border-radius: 60px;
+        }
+        input[type="range"] { flex: 1; }
+        .memory-text { background: #f9fcff; padding: 20px; border-radius: 28px; line-height: 1.6; max-height: 220px; overflow-y: auto; margin: 15px 0; }
+        .question-item { background: #eef3fc; padding: 12px 16px; border-radius: 24px; margin: 12px 0; }
+        .answer-input { width: 100%; padding: 10px 15px; border-radius: 40px; border: 1px solid #aac9ff; margin-top: 8px; }
+        button, .btn { background: #0a2f6c; color: white; border: none; padding: 10px 22px; border-radius: 40px; font-weight: bold; cursor: pointer; margin: 5px; }
+        .success { background: #c8f0e1; padding: 12px; border-radius: 32px; color: #136b47; margin-top: 12px; }
+        .error { background: #ffe0db; padding: 12px; border-radius: 32px; color: #b33; }
+        @media (max-width: 700px) {
+            .navbar { flex-direction: column; text-align: center; }
+            .running-word { font-size: 2rem; padding: 25px; }
+        }
+        footer { text-align: center; margin-top: 30px; color: #6c8fc7; }
+        
+        /* Форма авторизации */
+        .auth-card { max-width: 450px; margin: 40px auto; background: white; border-radius: 48px; padding: 35px; }
+        .auth-card input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 60px; border: 2px solid #d9e8ff; }
+        .google-btn { background: white; color: #444; border: 2px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .divider { text-align: center; margin: 20px 0; color: #aaa; }
+    </style>
+</head>
+<body>
+
+<div class="navbar" id="navbar" style="display:none;">
+    <div class="logo-small">📖 Скорочитайка</div>
+    <div class="nav-links">
+        <button class="nav-item active" data-page="mainMenuPage" onclick="showPage('mainMenuPage')">🏠 Главная</button>
+        <button class="nav-item" data-page="runningPage" onclick="showPage('runningPage')">🏃 Бегущие слова</button>
+        <button class="nav-item" data-page="memoryPage" onclick="showPage('memoryPage')">🧠 Тренировка памяти</button>
+        <button class="nav-item" data-page="profilePage" onclick="showPage('profilePage')">👤 Личный кабинет</button>
+        <button class="nav-item logout-btn" onclick="logoutUser()">🚪 Выйти</button>
+    </div>
+</div>
+
+<!-- Страница входа -->
+<div id="loginPage" class="page active-page">
+    <div class="auth-card">
+        <h2 id="formTitle" style="text-align:center;">Войти в Скорочитайку</h2>
+        <div id="registerNameGroup" style="display:none;"><input type="text" id="registerName" placeholder="Как тебя зовут?"></div>
+        <input type="email" id="authEmail" placeholder="Email">
+        <input type="password" id="authPassword" placeholder="Пароль">
+        <button onclick="handleAuthSubmit()" id="submitAuthBtn">Войти</button>
+        <div class="divider">или</div>
+        <button onclick="signInWithGoogle()" class="google-btn">🔵 Войти через Google</button>
+        <div class="toggle-link" id="toggleAuthLink" style="text-align:center; margin-top:20px;">
+            Нет аккаунта? <a href="#" onclick="toggleAuthMode(); return false;">Зарегистрироваться</a>
+        </div>
+    </div>
+</div>
+
+<!-- Главное меню -->
+<div id="mainMenuPage" class="page">
+    <div class="card">
+        <h1>📖 Добро пожаловать в Скорочитайку!</h1>
+        <p>Выбери упражнение для тренировки:</p>
+        <div class="menu-grid">
+            <div class="menu-card" onclick="showPage('runningPage')">
+                <div class="menu-icon">🏃</div>
+                <h3>Бегущие слова</h3>
+                <p>Тренируй скорость чтения</p>
+            </div>
+            <div class="menu-card" onclick="showPage('memoryPage')">
+                <div class="menu-icon">🧠</div>
+                <h3>Тренировка памяти</h3>
+                <p>Читай и отвечай на вопросы</p>
+            </div>
+            <div class="menu-card" onclick="showPage('profilePage')">
+                <div class="menu-icon">👤</div>
+                <h3>Личный кабинет</h3>
+                <p>Твои достижения</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Бегущие слова -->
+<div id="runningPage" class="page">
+    <div class="card">
+        <h2>🏃 Бегущие слова</h2>
+        <select id="levelSelect" style="padding:10px; border-radius:30px; margin-bottom:15px;">
+            <option value="1">⭐ Лёгкий (3-4 буквы)</option>
+            <option value="2">⭐⭐ Средний (5-6 букв)</option>
+            <option value="3">⭐⭐⭐ Сложный (7+ букв)</option>
+        </select>
+        <div class="speed-control">
+            <span>⚡ Скорость:</span>
+            <input type="range" id="speedSlider" min="50" max="700" value="450">
+            <span id="speedValue">~150 сл/мин</span>
+        </div>
+        <div class="running-word" id="runningWord">▶ Нажми «Старт»</div>
+        <div style="text-align:center;">
+            <button onclick="startRunningWords()">🚀 Старт</button>
+            <button onclick="stopRunningWords()">⏹ Стоп</button>
+        </div>
+    </div>
+</div>
+
+<!-- Тренировка памяти -->
+<div id="memoryPage" class="page">
+    <div class="card">
+        <h2>🧠 Тренировка памяти</h2>
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <button onclick="prevMemoryText()">◀ Предыдущий</button>
+            <button onclick="nextMemoryText()">Следующий ▶</button>
+        </div>
+        <div id="memoryTitle" style="font-size:1.4rem; font-weight:bold;"></div>
+        <div id="memoryTextBody" class="memory-text"></div>
+        <div id="memoryQuestions"></div>
+        <button onclick="checkMemoryAnswers()">✅ Проверить ответы</button>
+        <div id="memoryFeedback"></div>
+    </div>
+</div>
+
+<!-- Личный кабинет -->
+<div id="profilePage" class="page">
+    <div class="card">
+        <h2>👤 Личный кабинет</h2>
+        <div style="background:#e8f0fe; border-radius:28px; padding:20px; margin-bottom:25px;">
+            <p><strong>Имя:</strong> <span id="profileUserName">-</span></p>
+            <p><strong>Email:</strong> <span id="profileEmail">-</span></p>
+        </div>
+        <h2>🏆 Мои достижения</h2>
+        <div id="achievementsList"></div>
+    </div>
+</div>
+
+<script>
+    // Дублируем showPage для глобального доступа
+    window.showPage = function(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+        document.getElementById(pageId).classList.add('active-page');
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+            if (item.getAttribute('data-page') === pageId) item.classList.add('active');
+        });
+        if (pageId === 'profilePage' && window.currentUser) {
+            document.getElementById('profileUserName').innerText = window.currentUser.displayName || window.currentUser.email?.split('@')[0] || "Читатель";
+            document.getElementById('profileEmail').innerText = window.currentUser.email || "Не указан";
+            if (typeof updateAchievementsUI === 'function') updateAchievementsUI();
+        }
+        if (pageId === 'runningPage') {
+            const runningWordDiv = document.getElementById('runningWord');
+            if (runningWordDiv) runningWordDiv.innerText = "▶ Нажми «Старт»";
+            if (typeof stopRunningWords === 'function') stopRunningWords();
+        }
+    };
+    
+    // Показываем навбар после входа
+    const observer = new MutationObserver(() => {
+        const loginPage = document.getElementById('loginPage');
+        const navbar = document.getElementById('navbar');
+        if (loginPage && !loginPage.classList.contains('active-page')) {
+            navbar.style.display = 'flex';
+        } else {
+            navbar.style.display = 'none';
+        }
+    });
+    observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+</script>
+</body>
+</html>
