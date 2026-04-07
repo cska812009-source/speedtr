@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Скорочитайка - Тренажёр для детей</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Neue', 'Comic Sans MS', 'Segoe UI', cursive, sans-serif;
+            background: linear-gradient(135deg, #0a2a4a 0%, #0d3b66 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 40px;
+            padding: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            border: 3px solid #ffd966;
+        }
+
+        .header {
+            background: white;
+            border-radius: 40px;
+            padding: 15px 25px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            border: 3px solid #ffd966;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #2c5f8a, #1a3f5c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #e8f0f8;
+            padding: 8px 15px;
+            border-radius: 50px;
+        }
+
+        .btn-logout {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .exercise-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .ex-btn {
+            flex: 1;
+            padding: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 60px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: transform 0.2s;
+            background: white;
+            color: #1a4d6b;
+            border: 3px solid #ffd966;
+        }
+
+        .ex-btn.active {
+            background: linear-gradient(135deg, #1a4d6b, #0d3b66);
+            color: white;
+            border-color: white;
+        }
+
+        .ex-btn:active {
+            transform: scale(0.95);
+        }
+
+        .level-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .level-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            background: #e8f0f8;
+            color: #1a4d6b;
+            font-family: inherit;
+        }
+
+        .level-btn.active {
+            background: #ffd966;
+            color: #1a4d6b;
+            box-shadow: 0 3px 0 #ccaa33;
+        }
+
+        .word-screen {
+            background: #f0f8ff;
+            border-radius: 50px;
+            padding: 50px 20px;
+            text-align: center;
+            font-size: 56px;
+            font-weight: bold;
+            color: #1a4d6b;
+            margin: 20px 0;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 4px solid #ffd966;
+        }
+
+        .speed-area {
+            background: #fff9e6;
+            padding: 15px;
+            border-radius: 50px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .speed-label {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ff8c42;
+            margin-bottom: 10px;
+        }
+
+        .speed-slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            background: #ffd966;
+            border-radius: 10px;
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 28px;
+            height: 28px;
+            background: #ff8c42;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+        }
+
+        .speed-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #ff8c42;
+            margin-top: 8px;
+        }
+
+        .game-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .game-btn {
+            padding: 12px 25px;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: transform 0.1s;
+        }
+
+        .game-btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-start {
+            background: #6bcf7f;
+            color: white;
+            box-shadow: 0 5px 0 #2d6a3b;
+        }
+
+        .btn-pause {
+            background: #ffb347;
+            color: white;
+            box-shadow: 0 5px 0 #cc7a00;
+        }
+
+        .btn-stop {
+            background: #ff6b6b;
+            color: white;
+            box-shadow: 0 5px 0 #b34747;
+        }
+
+        .questions-box {
+            background: #fff9e6;
+            border-radius: 40px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .question-item {
+            background: white;
+            border-radius: 30px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 15px solid #1a4d6b;
+        }
+
+        .question-text {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: #1a4d6b;
+        }
+
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .option {
+            background: #e8f0f8;
+            padding: 8px 18px;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .option.selected {
+            background: #1a4d6b;
+            color: white;
+        }
+
+        .submit-btn {
+            background: #6bcf7f;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .result-badge {
+            text-align: center;
+            padding: 15px;
+            border-radius: 50px;
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .result-badge.good {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .auth-card {
+            background: white;
+            border-radius: 60px;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .auth-card h2 {
+            color: #1a4d6b;
+            margin-bottom: 25px;
+            font-size: 32px;
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: 3px solid #ffd966;
+            border-radius: 60px;
+            font-size: 16px;
+            font-family: inherit;
+            text-align: center;
+        }
+
+        .auth-btn {
+            background: linear-gradient(135deg, #1a4d6b, #0d3b66);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 60px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .switch-auth {
+            margin-top: 15px;
+            color: #1a4d6b;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .progress {
+            font-size: 18px;
+            text-align: center;
+            margin: 10px 0;
+            color: #ff8c42;
+            font-weight: bold;
+        }
+
+        .preset {
+            background: white;
+            border: 2px solid #ff8c42;
+            padding: 5px 15px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .info-text {
+            text-align: center;
+            color: #6c8a9e;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 550px) {
+            .word-screen {
+                font-size: 40px;
+                padding: 35px 15px;
+            }
+            .game-btn {
+                padding: 10px 18px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container" id="app">
+    <div id="authScreen">
+        <div class="auth-card">
+            <h2>📚 Скорочитайка! 🚀</h2>
+            <div id="loginPanel">
+                <input type="email" id="loginEmail" class="auth-input" placeholder="📧 Твой email">
+                <input type="password" id="loginPassword" class="auth-input" placeholder="🔒 Пароль">
+                <button class="auth-btn" id="loginBtn">🚪 Войти</button>
+                <div class="switch-auth" id="showRegPanel">📝 Нет аккаунта? Создать!</div>
+            </div>
+            <div id="regPanel" style="display:none;">
+                <input type="email" id="regEmail" class="auth-input" placeholder="📧 Твой email">
+                <input type="password" id="regPassword" class="auth-input" placeholder="🔒 Пароль (6+ букв)">
+                <input type="password" id="regPasswordConfirm" class="auth-input" placeholder="🔄 Повтори пароль">
+                <button class="auth-btn" id="registerBtn">✅ Зарегистрироваться</button>
+                <div class="switch-auth" id="showLoginPanel">◀ Уже есть аккаунт? Войти</div>
+            </div>
+            <div id="authMessage" style="color:#ff6b6b; margin-top:15px;"></div>
+        </div>
+    </div>
+
+    <div id="gameScreen" style="display:none;">
+        <div class="header">
+            <div class="logo">🐼 Скорочитайка!</div>
+            <div class="user-info">
+                <span id="userName">🤗</span>
+                <button class="btn-logout" id="logoutBtn">🚪 Выйти</button>
+            </div>
+        </div>
+
+        <div class="exercise-buttons">
+            <button class="ex-btn active" data-ex="run">🏃‍♂️ Бегущие слова</button>
+            <button class="ex-btn" data-ex="quiz">🧠 Понял? Ответь!</button>
+        </div>
+
+        <div id="runExercise" class="card">
+            <div class="level-buttons">
+                <button class="level-btn active" data-level="easy">🐣 Короткие (3-4 буквы)</button>
+                <button class="level-btn" data-level="medium">🐥 Средние (5-6 букв)</button>
+                <button class="level-btn" data-level="hard">🦉 Длинные (7-9 букв)</button>
+            </div>
+            <div class="progress">📖 Слово <span id="wordCounter">0</span> из <span id="totalCounter">30</span></div>
+            <div class="word-screen" id="wordDisplay">🌟 Нажми СТАРТ</div>
+            <div class="speed-area">
+                <div class="speed-label">⚡ Скорость чтения</div>
+                <input type="range" id="speedSlider" class="speed-slider" min="200" max="1000" step="10" value="450">
+                <div class="speed-value" id="speedValue">450 мс</div>
+                <div style="display: flex; gap: 8px; justify-content: center; margin-top: 10px;">
+                    <button class="preset" data-speed="700">🐢 Медленно</button>
+                    <button class="preset" data-speed="450">⚡ Средне</button>
+                    <button class="preset" data-speed="250">🐆 Быстро</button>
+                </div>
+            </div>
+            <div class="game-buttons">
+                <button class="game-btn btn-start" id="startRunBtn">▶ СТАРТ</button>
+                <button class="game-btn btn-pause" id="pauseRunBtn">⏸ ПАУЗА</button>
+                <button class="game-btn btn-stop" id="stopRunBtn">⏹ СТОП</button>
+            </div>
+            <div class="info-text">🌟 Слова появляются по одному. Смотри в центр экрана и читай!</div>
+        </div>
+
+        <div id="quizExercise" class="card" style="display:none;">
+            <div class="word-screen" id="quizText">📖 Нажми "Новый рассказ"</div>
+            <button class="game-btn btn-start" id="newTextBtn" style="width:100%; margin-bottom:15px;">✨ Новый рассказ</button>
+            <div id="quizQuestions" class="questions-box" style="display:none;">
+                <div id="questionsList"></div>
+                <button class="submit-btn" id="checkQuizBtn">✅ Проверить ответы</button>
+                <div id="quizResult" class="result-badge"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCApGTxPoGJlNDQByASNPlu_XAIpv2z6LI",
+        authDomain: "speedtr-75911.firebaseapp.com",
+        projectId: "speedtr-75911",
+        storageBucket: "speedtr-75911.firebasestorage.app",
+        messagingSenderId: "447910342060",
+        appId: "1:447910342060:web:18fad38b7493e23efd1e09"
+    };
+
+    let auth;
+    try {
+        const app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        console.log("✅ Firebase подключён!");
+    } catch (error) {
+        console.error("❌ Ошибка Firebase:", error);
+    }
+
+    // 📚 БИБЛИОТЕКА СЛОВ ПО УРОВНЯМ (по 30 слов в каждом)
+    const wordLibraries = {
+        easy: [  // Короткие слова (3-4 буквы)
+            "кот", "дом", "лес", "мир", "сад", "друг", "мама", "папа", "брат", "сестра",
+            "солнце", "луна", "звезда", "река", "гора", "море", "поле", "цветы", "птица", "рыба",
+            "хлеб", "молоко", "сок", "чай", "суп", "каша", "игра", "книга", "ручка", "школа"
+        ],
+        medium: [  // Средние слова (5-6 букв)
+            "котик", "домик", "лесок", "мирок", "садик", "дружок", "мамочка", "папочка", "братик", "сестричка",
+            "солнышко", "луночка", "звёздочка", "реченька", "горочка", "мореход", "полюшко", "цветочек", "птичка", "рыбка",
+            "хлебушек", "молочко", "соковыжималка", "чайник", "супчик", "кашка", "игрушка", "книжечка", "ручечка", "школьник"
+        ],
+        hard: [   // Длинные слова (7-9 букв)
+            "котёнок", "домище", "лесник", "миролюбие", "садовник", "дружелюбие", "материнство", "отцовство", "братишка", "сестрёнка",
+            "солнечный", "лунный", "звёздный", "речной", "горный", "морской", "полевой", "цветочный", "птичий", "рыбачий",
+            "хлебный", "молочный", "соковый", "чайный", "суповой", "кашевар", "игровой", "книжный", "ручной", "школьный"
+        ]
+    };
+
+    // Рассказы с вопросами для 2 упражнения
+    const stories = [
+        {
+            text: "Жил-был маленький котёнок по имени Мурзик. Он очень любил играть с клубком ниток. Однажды клубок укатился под шкаф, и Мурзик не мог его достать. Тогда на помощь пришла мама-кошка. Она лапой достала клубок, и они вместе весело играли.",
+            questions: [
+                { text: "Как звали котёнка?", options: ["Барсик", "Мурзик", "Рыжик", "Пушок"], correct: 1 },
+                { text: "С чем любил играть Мурзик?", options: ["С мячиком", "С клубком ниток", "С бантиком", "С мышкой"], correct: 1 },
+                { text: "Кто помог достать клубок?", options: ["Папа-кот", "Дедушка", "Мама-кошка", "Собака"], correct: 2 }
+            ]
+        },
+        {
+            text: "В лесной школе учились зверята. Зайчик отлично прыгал, белочка хорошо собирала орехи, а ёжик любил читать книги. Однажды учительница сова дала задание нарисовать осень. Все зверята нарисовали красивые рисунки, а ёжик нарисовал самую красивую золотую осень.",
+            questions: [
+                { text: "Кто учился в лесной школе?", options: ["Птицы", "Зверята", "Рыбки", "Насекомые"], correct: 1 },
+                { text: "Что любил делать ёжик?", options: ["Прыгать", "Собирать орехи", "Читать книги", "Рисовать"], correct: 2 },
+                { text: "Кто была учительница?", options: ["Ворона", "Сова", "Сорока", "Кукушка"], correct: 1 }
+            ]
+        },
+        {
+            text: "Девочка Маша очень хотела научиться читать. Каждый день она брала букварь и учила буквы. Сначала было трудно, но Маша не сдавалась. Через месяц она уже читала простые слова, а через два месяца - целые предложения. Машина бабушка очень гордилась внучкой.",
+            questions: [
+                { text: "Чему хотела научиться Маша?", options: ["Писать", "Считать", "Читать", "Рисовать"], correct: 2 },
+                { text: "Что она учила каждый день?", options: ["Цифры", "Буквы", "Песни", "Стихи"], correct: 1 },
+                { text: "Кто гордился Машей?", options: ["Мама", "Папа", "Бабушка", "Учительница"], correct: 2 }
+            ]
+        }
+    ];
+
+    // Переменные для упражнения 1
+    let currentLevel = "easy";
+    let currentWords = [...wordLibraries.easy];
+    let currentWordIndex = 0;
+    let runInterval = null;
+    let isRunning = false;
+    let currentSpeed = 450;
+
+    // DOM элементы упражнения 1
+    const wordDisplay = document.getElementById('wordDisplay');
+    const speedSlider = document.getElementById('speedSlider');
+    const speedValue = document.getElementById('speedValue');
+    const startRunBtn = document.getElementById('startRunBtn');
+    const pauseRunBtn = document.getElementById('pauseRunBtn');
+    const stopRunBtn = document.getElementById('stopRunBtn');
+    const wordCounterSpan = document.getElementById('wordCounter');
+    const totalCounterSpan = document.getElementById('totalCounter');
+
+    // DOM элементы упражнения 2
+    const quizTextDiv = document.getElementById('quizText');
+    const newTextBtn = document.getElementById('newTextBtn');
+    const quizQuestionsDiv = document.getElementById('quizQuestions');
+    const questionsListDiv = document.getElementById('questionsList');
+    const checkQuizBtn = document.getElementById('checkQuizBtn');
+    const quizResultDiv = document.getElementById('quizResult');
+
+    // Переменные для упражнения 2
+    let currentStory = null;
+    let selectedAnswers = {};
+
+    // === УПРАЖНЕНИЕ 1: БЕГУЩИЕ СЛОВА ===
+    function loadWordsByLevel() {
+        currentWords = [...wordLibraries[currentLevel]];
+        currentWordIndex = 0;
+        totalCounterSpan.textContent = currentWords.length;
+        wordCounterSpan.textContent = "0";
+        if (!isRunning) {
+            wordDisplay.textContent = currentWords[0] || "Готово!";
+        }
+    }
+
+    function showNextWord() {
+        if (currentWordIndex < currentWords.length) {
+            wordDisplay.textContent = currentWords[currentWordIndex];
+            wordCounterSpan.textContent = currentWordIndex + 1;
+            currentWordIndex++;
+        } else {
+            stopRunning();
+            wordDisplay.textContent = "🎉 Молодец! Все слова прочитаны! 🎉";
+        }
+    }
+
+    function startRunning() {
+        if (isRunning) return;
+        if (currentWordIndex >= currentWords.length) {
+            loadWordsByLevel();
+        }
+        isRunning = true;
+        runInterval = setInterval(() => {
+            showNextWord();
+            if (currentWordIndex > currentWords.length) {
+                stopRunning();
+            }
+        }, currentSpeed);
+    }
+
+    function pauseRunning() {
+        if (runInterval) {
+            clearInterval(runInterval);
+            runInterval = null;
+        }
+        isRunning = false;
+    }
+
+    function stopRunning() {
+        pauseRunning();
+        loadWordsByLevel();
+    }
+
+    // === УПРАЖНЕНИЕ 2: ПОНИМАНИЕ ТЕКСТА ===
+    function loadRandomStory() {
+        currentStory = stories[Math.floor(Math.random() * stories.length)];
+        quizTextDiv.textContent = currentStory.text;
+        buildQuestions();
+        quizResultDiv.innerHTML = '';
+        quizResultDiv.className = 'result-badge';
+        selectedAnswers = {};
+    }
+
+    function buildQuestions() {
+        if (!currentStory) return;
+        questionsListDiv.innerHTML = '';
+        currentStory.questions.forEach((q, idx) => {
+            const qDiv = document.createElement('div');
+            qDiv.className = 'question-item';
+            qDiv.innerHTML = `
+                <div class="question-text">${idx+1}. ${q.text}</div>
+                <div class="options" data-qidx="${idx}">
+                    ${q.options.map((opt, optIdx) => `
+                        <div class="option" data-optidx="${optIdx}">${opt}</div>
+                    `).join('')}
+                </div>
+            `;
+            questionsListDiv.appendChild(qDiv);
+        });
+        
+        document.querySelectorAll('.options').forEach(optGroup => {
+            const qIndex = parseInt(optGroup.dataset.qidx);
+            optGroup.querySelectorAll('.option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    optGroup.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                    selectedAnswers[qIndex] = parseInt(opt.dataset.optidx);
+                });
+            });
+        });
+        quizQuestionsDiv.style.display = 'block';
+    }
+
+    function checkQuiz() {
+        if (!currentStory) return;
+        let correct = 0;
+        currentStory.questions.forEach((q, idx) => {
+            if (selectedAnswers[idx] === q.correct) correct++;
+        });
+        const total = currentStory.questions.length;
+        if (correct === total) {
+            quizResultDiv.innerHTML = `🎉 Молодец! ${correct} из ${total} правильных! 🎉`;
+            quizResultDiv.className = 'result-badge good';
+        } else {
+            quizResultDiv.innerHTML = `📚 Правильных ответов: ${correct} из ${total}. Попробуй ещё раз! 🌟`;
+            quizResultDiv.className = 'result-badge';
+        }
+    }
+
+    // === ОБРАБОТЧИКИ ===
+    // Переключение уровней сложности
+    document.querySelectorAll('.level-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentLevel = btn.dataset.level;
+            loadWordsByLevel();
+        });
+    });
+
+    // Настройка скорости
+    speedSlider.addEventListener('input', (e) => {
+        currentSpeed = parseInt(e.target.value);
+        speedValue.textContent = currentSpeed + " мс";
+        if (isRunning) {
+            pauseRunning();
+            startRunning();
+        }
+    });
+
+    document.querySelectorAll('.preset').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const speed = parseInt(btn.dataset.speed);
+            speedSlider.value = speed;
+            currentSpeed = speed;
+            speedValue.textContent = speed + " мс";
+            if (isRunning) {
+                pauseRunning();
+                startRunning();
+            }
+        });
+    });
+
+    startRunBtn.addEventListener('click', startRunning);
+    pauseRunBtn.addEventListener('click', pauseRunning);
+    stopRunBtn.addEventListener('click', stopRunning);
+
+    // Переключение между упражнениями
+    const exBtns = document.querySelectorAll('.ex-btn');
+    const runExerciseDiv = document.getElementById('runExercise');
+    const quizExerciseDiv = document.getElementById('quizExercise');
+    
+    exBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            exBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (btn.dataset.ex === 'run') {
+                runExerciseDiv.style.display = 'block';
+                quizExerciseDiv.style.display = 'none';
+                if (!currentWords.length) loadWordsByLevel();
+            } else {
+                runExerciseDiv.style.display = 'none';
+                quizExerciseDiv.style.display = 'block';
+                if (!currentStory) loadRandomStory();
+            }
+        });
+    });
+
+    newTextBtn.addEventListener('click', () => loadRandomStory());
+    checkQuizBtn.addEventListener('click', checkQuiz);
+
+    // === FIREBASE AUTH ===
+    const authScreenDiv = document.getElementById('authScreen');
+    const gameScreenDiv = document.getElementById('gameScreen');
+    const userNameSpan = document.getElementById('userName');
+    
+    const loginPanelDiv = document.getElementById('loginPanel');
+    const regPanelDiv = document.getElementById('regPanel');
+    const showRegPanelBtn = document.getElementById('showRegPanel');
+    const showLoginPanelBtn = document.getElementById('showLoginPanel');
+    const loginBtnElem = document.getElementById('loginBtn');
+    const registerBtnElem = document.getElementById('registerBtn');
+    const logoutBtnElem = document.getElementById('logoutBtn');
+    const authMessageDiv = document.getElementById('authMessage');
+
+    function showAuthMessage(msg, isError = true) {
+        authMessageDiv.textContent = msg;
+        authMessageDiv.style.color = isError ? '#ff6b6b' : '#6bcf7f';
+        setTimeout(() => authMessageDiv.textContent = '', 3000);
+    }
+
+    loginBtnElem.addEventListener('click', async () => {
+        const email = document.getElementById('loginEmail').value;
+        const pwd = document.getElementById('loginPassword').value;
+        if (!email || !pwd) { showAuthMessage("Введи email и пароль!"); return; }
+        try {
+            await signInWithEmailAndPassword(auth, email, pwd);
+        } catch (err) { showAuthMessage("Ошибка: " + err.message); }
+    });
+
+    registerBtnElem.addEventListener('click', async () => {
+        const email = document.getElementById('regEmail').value;
+        const pwd = document.getElementById('regPassword').value;
+        const confirm = document.getElementById('regPasswordConfirm').value;
+        if (!email || !pwd) { showAuthMessage("Заполни все поля!"); return; }
+        if (pwd !== confirm) { showAuthMessage("Пароли не совпадают"); return; }
+        if (pwd.length < 6) { showAuthMessage("Пароль должен быть не меньше 6 букв"); return; }
+        try {
+            await createUserWithEmailAndPassword(auth, email, pwd);
+        } catch (err) { showAuthMessage("Ошибка: " + err.message); }
+    });
+
+    showRegPanelBtn.addEventListener('click', () => {
+        loginPanelDiv.style.display = 'none';
+        regPanelDiv.style.display = 'block';
+    });
+    showLoginPanelBtn.addEventListener('click', () => {
+        regPanelDiv.style.display = 'none';
+        loginPanelDiv.style.display = 'block';
+    });
+    logoutBtnElem.addEventListener('click', async () => { await signOut(auth); });
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            authScreenDiv.style.display = 'none';
+            gameScreenDiv.style.display = 'block';
+            userNameSpan.textContent = user.email.split('@')[0] + " 🐣";
+            loadWordsByLevel();
+            loadRandomStory();
+        } else {
+            authScreenDiv.style.display = 'block';
+            gameScreenDiv.style.display = 'none';
+            loginPanelDiv.style.display = 'block';
+            regPanelDiv.style.display = 'none';
+        }
+    });
+</script>
+</body>
+</html>
