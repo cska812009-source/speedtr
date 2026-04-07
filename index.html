@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Скорочитайка - Развитие скорочтения у детей</title>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // Импортируем Firebase модули
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+        // Конфигурация Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCApGTxPoGJlNDQByASNPlu_XAIpv2z6LI",
+            authDomain: "speedtr-75911.firebaseapp.com",
+            projectId: "speedtr-75911",
+            storageBucket: "speedtr-75911.firebasestorage.app",
+            messagingSenderId: "447910342060",
+            appId: "1:447910342060:web:18fad38b7493e23efd1e09"
+        };
+
+        // Инициализация
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        // Глобальные данные пользователя
+        window.currentUser = null;
+        window.userAchievements = {
+            runningWordsCompleted: false,
+            memoryMaster: false,
+            level1Passed: false,
+            level2Passed: false,
+            level3Passed: false,
+            allTestsPassed: false
+        };
+
+        // Библиотека слов по уровням (30 слов)
+        const wordsLibrary = {
+            1: ["кот", "дом", "лес", "море", "река", "луна", "звезда", "снег", "дождь", "ветер", "мир", "друг", "книга", "ручка", "стол", "стул", "окно", "дверь", "мама", "папа", "брат", "сестра", "школа", "игра", "мяч", "кукла", "машина", "солнце", "небо", "облако"],
+            2: ["солнце", "месяц", "звезда", "радуга", "цветок", "дерево", "птица", "бабочка", "велосипед", "компьютер", "телефон", "планшет", "карандаш", "пенал", "портфель", "учитель", "ученик", "перемена", "завтрак", "обед", "ужин", "мороженое", "шоколад", "печенье", "котенок", "щенок", "рыбка", "попугай", "ромашка", "василек"],
+            3: ["скорочтение", "развитие", "внимание", "память", "интеллект", "образование", "литература", "хрестоматия", "упражнение", "достижение", "компьютер", "телевизор", "микрофон", "клавиатура", "монитор", "процессор", "оперативная", "система", "приложение", "авторизация", "конструктор", "вдохновение", "путешествие", "приключение", "воображение", "концентрация", "результат", "способность", "эрудиция", "фантазия"]
+        };
+
+        // Тексты для упражнения на память (5 текстов, по 5 вопросов)
+        const memoryTexts = [
+            {
+                title: "Лисёнок и ёжик",
+                text: "В лесу жил маленький лисёнок. Однажды он встретил ёжика. Ёжик нёс на спине гриб. Лисёнок удивился и спросил: 'Зачем тебе гриб?' Ёжик ответил: 'Я делаю запасы на зиму. Зимой будет холодно и голодно, поэтому я собираю грибы и ягоды.' Лисёнок тоже решил сделать запасы. Он набрал полную корзину яблок. Друзья пошли вместе к ручью пить воду. Вода была холодная и вкусная. Лисёнок сказал: 'Как хорошо иметь друга!' Ёжик кивнул и улыбнулся. С тех пор они стали лучшими друзьями и помогали друг другу.",
+                questions: ["Кого встретил лисёнок?", "Что нёс ёжик на спине?", "Что решил сделать лисёнок?", "Что набрал лисёнок в корзину?", "Почему ёжик делал запасы?"],
+                answers: ["ёжика", "гриб", "запасы", "яблок", "зимой голодно"]
+            },
+            {
+                title: "Умная ворона",
+                text: "На дереве сидела ворона. В клюве она держала кусочек сыра. Мимо пробежала лиса. Лиса захотела сыр и сказала: 'Какая ты красивая ворона! Наверное, у тебя чудесный голос. Спой мне, пожалуйста!' Ворона обрадовалась похвале, открыла клюв и громко закаркала. Сыр упал прямо лисе в лапы. Лиса быстро убежала. Ворона поняла, что её обманули из-за хвастовства. С тех пор ворона стала осторожнее.",
+                questions: ["Что держала ворона в клюве?", "Кто захотел отобрать сыр?", "Что попросила лиса сделать ворону?", "Что случилось с сыром?", "Почему ворона потеряла сыр?"],
+                answers: ["сыр", "лиса", "спеть", "упал", "хвастовство"]
+            },
+            {
+                title: "Дружба кролика и белки",
+                text: "В одном лесу жили кролик и белка. Они часто играли вместе. Однажды пошёл сильный дождь. Норка кролика начала заливаться водой. Белка увидела это и позвала кролика в своё дупло на дереве. Кролик был благодарен. В дупле было сухо и тепло. Они вместе переждали дождь, пили чай с малиной. После дождя выглянуло солнце. Кролик помог белке собрать орехи на зиму. Их дружба стала ещё крепче.",
+                questions: ["Кто помог кролику во время дождя?", "Куда белка позвала кролика?", "Чем они пили чай?", "Чем кролик помог белке после дождя?", "Чему научила их эта история?"],
+                answers: ["белка", "дупло", "малина", "орехи", "дружба"]
+            },
+            {
+                title: "Волшебная кисточка",
+                text: "У маленькой девочки Маши была волшебная кисточка. Всё, что она рисовала, оживало. Однажды она нарисовала красивый цветок, и он зацвёл прямо на бумаге. Маша нарисовала бабочку, и она улетела в окно. Девочка была счастлива. Но потом она нарисовала много конфет и съела их. У неё заболел живот. Мама сказала: 'Волшебство нужно использовать с умом, чтобы помогать другим'. Маша нарисовала лекарство для больного котёнка, и котёнок выздоровел.",
+                questions: ["Что умела делать волшебная кисточка?", "Что произошло, когда Маша нарисовала цветок?", "Почему у Маши заболел живот?", "Кому Маша помогла волшебной кисточкой?", "Какой урок дала мама?"],
+                answers: ["оживлять", "зацвёл", "конфеты", "котёнку", "помогать другим"]
+            },
+            {
+                title: "Храбрый муравей",
+                text: "Жил-был маленький муравей. Однажды он увидел, что его брат попал в муравьиную ловушку. Муравей не испугался и начал грызть верёвку. Долго он трудился, но перегрыз. Брат был спасён. Другие муравьи назвали его храбрецом. Потом случился лесной пожар. Муравей помогал всем переносить яйца в безопасное место. Муравьиная королева сказала: 'Размер не имеет значения, важна смелость и доброта'. Муравей стал героем.",
+                questions: ["Кого спас муравей из ловушки?", "Как муравей спас брата?", "Что случилось потом в лесу?", "Кто сказал, что важна смелость и доброта?", "Каким стал муравей?"],
+                answers: ["брата", "перегрыз", "пожар", "королева", "герой"]
+            }
+        ];
+
+        // Сохранение достижений в Firestore
+        async function saveAchievements(userId) {
+            if (!userId) return;
+            const userRef = doc(db, "users", userId);
+            await setDoc(userRef, { achievements: window.userAchievements, email: window.currentUser?.email, name: window.currentUser?.displayName }, { merge: true });
+        }
+
+        async function loadAchievements(userId) {
+            if (!userId) return;
+            const userRef = doc(db, "users", userId);
+            const docSnap = await getDoc(userRef);
+            if (docSnap.exists() && docSnap.data().achievements) {
+                window.userAchievements = docSnap.data().achievements;
+            } else {
+                await saveAchievements(userId);
+            }
+            updateAchievementsUI();
+        }
+
+        function updateAchievementsUI() {
+            const container = document.getElementById('achievementsList');
+            if (!container) return;
+            const a = window.userAchievements;
+            container.innerHTML = `
+                <div class="achieve ${a.runningWordsCompleted ? 'unlocked' : 'locked'}">🏃 ${a.runningWordsCompleted ? '✅' : '🔒'} Чтец-молодец: Пройти "Бегущие слова"</div>
+                <div class="achieve ${a.memoryMaster ? 'unlocked' : 'locked'}">🧠 ${a.memoryMaster ? '✅' : '🔒'} Знаток памяти: Ответить на 4/5 вопросов текста</div>
+                <div class="achieve ${a.level1Passed && a.level2Passed && a.level3Passed ? 'unlocked' : 'locked'}">⭐ ${(a.level1Passed && a.level2Passed && a.level3Passed) ? '✅' : '🔒'} Мастер слов: Пройти все 3 уровня</div>
+                <div class="achieve ${a.allTestsPassed ? 'unlocked' : 'locked'}">📚 ${a.allTestsPassed ? '✅' : '🔒'} Эрудит: Пройти все 5 текстов</div>
+            `;
+        }
+
+        // ----- Управление страницами -----
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+            document.getElementById(pageId).classList.add('active-page');
+            if (pageId === 'mainPage' && window.currentUser) {
+                const displayName = window.currentUser.displayName || window.currentUser.email?.split('@')[0] || "Читатель";
+                document.getElementById('mainUserName').innerText = displayName;
+            }
+        }
+
+        // Переключение между входом и регистрацией
+        let isLoginMode = true;
+        window.toggleAuthMode = function() {
+            isLoginMode = !isLoginMode;
+            const formTitle = document.getElementById('formTitle');
+            const nameField = document.getElementById('registerNameGroup');
+            const submitBtn = document.getElementById('submitAuthBtn');
+            const toggleLink = document.getElementById('toggleAuthLink');
+            
+            if (isLoginMode) {
+                formTitle.innerText = 'Войти в Скорочитайку';
+                nameField.style.display = 'none';
+                submitBtn.innerText = 'Войти';
+                toggleLink.innerHTML = 'Нет аккаунта? <a href="#" onclick="toggleAuthMode(); return false;">Зарегистрироваться</a>';
+            } else {
+                formTitle.innerText = 'Создать аккаунт';
+                nameField.style.display = 'block';
+                submitBtn.innerText = 'Зарегистрироваться';
+                toggleLink.innerHTML = 'Уже есть аккаунт? <a href="#" onclick="toggleAuthMode(); return false;">Войти</a>';
+            }
+        };
+
+        // Вход с Google
+        window.signInWithGoogle = async function() {
+            try {
+                const result = await signInWithPopup(auth, googleProvider);
+                window.currentUser = result.user;
+                showPage('mainPage');
+                //await loadAchievements(result.user.uid);                
+            } catch (err) {
+                alert('Ошибка входа через Google: ' + err.message);
+            }
+        };
+
+        // Обработка отправки формы (email/пароль)
+        window.handleAuthSubmit = async function() {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            
+            if (!email || !password) {
+                alert('Пожалуйста, заполните email и пароль');
+                return;
+            }
+            
+            if (isLoginMode) {
+                try {
+                    const userCred = await signInWithEmailAndPassword(auth, email, password);
+                    window.currentUser = userCred.user;
+                    await loadAchievements(userCred.user.uid);
+                    showPage('mainPage');
+                } catch (err) {
+                    alert('Ошибка входа: ' + err.message);
+                }
+            } else {
+                const name = document.getElementById('registerName').value;
+                if (!name) {
+                    alert('Введите имя ребёнка');
+                    return;
+                }
+                try {
+                    const userCred = await createUserWithEmailAndPassword(auth, email, password);
+                    await updateProfile(userCred.user, { displayName: name });
+                    window.currentUser = userCred.user;
+                    await saveAchievements(userCred.user.uid);
+                    await loadAchievements(userCred.user.uid);
+                    showPage('mainPage');
+                } catch (err) {
+                    alert('Ошибка регистрации: ' + err.message);
+                }
+            }
+        };
+
+        // Выход
+        window.logoutUser = async function() {
+            await signOut(auth);
+            document.getElementById('authEmail').value = '';
+            document.getElementById('authPassword').value = '';
+            document.getElementById('registerName').value = '';
+            isLoginMode = true;
+            window.toggleAuthMode();
+            showPage('loginPage');
+        };
+
+        // --- Упражнение 1: Бегущие слова ---
+        let runningInterval = null;
+        let runningActive = false;
+        let runningWords = [];
+        let runningIndex = 0;
+        let currentSpeedMs = 400;
+
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        if (speedSlider) {
+            speedSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                currentSpeedMs = 850 - val;
+                const wordsPerMin = Math.round(60000 / currentSpeedMs);
+                speedValue.innerText = wordsPerMin + " сл/мин";
+                if (runningActive && runningInterval) {
+                    clearInterval(runningInterval);
+                    startRunningLoop();
+                }
+            });
+        }
+
+        function startRunningLoop() {
+            if (!runningActive) return;
+            const display = document.getElementById('runningWord');
+            runningInterval = setInterval(() => {
+                if (!runningActive) return;
+                if (runningIndex >= runningWords.length) {
+                    clearInterval(runningInterval);
+                    runningActive = false;
+                    display.innerText = "🏆 Уровень пройден! 🏆";
+                    const currentLevel = parseInt(document.getElementById('levelSelect').value);
+                    if (currentLevel === 1) window.userAchievements.level1Passed = true;
+                    if (currentLevel === 2) window.userAchievements.level2Passed = true;
+                    if (currentLevel === 3) window.userAchievements.level3Passed = true;
+                    window.userAchievements.runningWordsCompleted = true;
+                    if (window.currentUser) saveAchievements(window.currentUser.uid);
+                    updateAchievementsUI();
+                    document.getElementById('startRunningBtn').disabled = false;
+                    document.getElementById('stopRunningBtn').disabled = true;
+                    return;
+                }
+                display.innerText = runningWords[runningIndex];
+                runningIndex++;
+            }, currentSpeedMs);
+        }
+
+        window.startRunningWords = function() {
+            if (runningInterval) clearInterval(runningInterval);
+            runningActive = true;
+            const level = parseInt(document.getElementById('levelSelect').value);
+            runningWords = [...wordsLibrary[level]];
+            runningIndex = 0;
+            const display = document.getElementById('runningWord');
+            display.style.opacity = '1';
+            startRunningLoop();
+            document.getElementById('startRunningBtn').disabled = true;
+            document.getElementById('stopRunningBtn').disabled = false;
+        };
+
+        window.stopRunningWords = function() {
+            if (runningInterval) {
+                clearInterval(runningInterval);
+                runningInterval = null;
+            }
+            runningActive = false;
+            document.getElementById('runningWord').innerText = "⏸️ Остановлено";
+            document.getElementById('startRunningBtn').disabled = false;
+            document.getElementById('stopRunningBtn').disabled = true;
+        };
+
+        // --- Упражнение 2: Память ---
+        let currentMemoryIndex = 0;
+        let passedTexts = JSON.parse(localStorage.getItem('passedMemoryTexts_' + (window.currentUser?.uid || 'guest')) || '[]');
+
+        function savePassedTexts() {
+            const key = 'passedMemoryTexts_' + (window.currentUser?.uid || 'guest');
+            localStorage.setItem(key, JSON.stringify(passedTexts));
+        }
+
+        function loadMemoryText(index) {
+            const data = memoryTexts[index];
+            document.getElementById('memoryTitle').innerText = data.title;
+            document.getElementById('memoryTextBody').innerText = data.text;
+            const questionsDiv = document.getElementById('memoryQuestions');
+            questionsDiv.innerHTML = '';
+            data.questions.forEach((q, i) => {
+                const qDiv = document.createElement('div');
+                qDiv.className = 'question-item';
+                qDiv.innerHTML = `<p><strong>Вопрос ${i+1}:</strong> ${q}</p>
+                                 <input type="text" id="memAns${i}" placeholder="Напиши ответ" class="answer-input">`;
+                questionsDiv.appendChild(qDiv);
+            });
+            currentMemoryIndex = index;
+            document.getElementById('memoryFeedback').innerHTML = '';
+        }
+
+        window.checkMemoryAnswers = function() {
+            const data = memoryTexts[currentMemoryIndex];
+            let correctCount = 0;
+            for (let i = 0; i < data.questions.length; i++) {
+                const userAnswer = document.getElementById(`memAns${i}`).value.trim().toLowerCase();
+                const correctAnswer = data.answers[i].toLowerCase();
+                if (userAnswer.includes(correctAnswer) || correctAnswer.includes(userAnswer) || userAnswer === correctAnswer) {
+                    correctCount++;
+                }
+            }
+            const feedback = document.getElementById('memoryFeedback');
+            if (correctCount >= 4) {
+                if (!passedTexts.includes(currentMemoryIndex)) {
+                    passedTexts.push(currentMemoryIndex);
+                    savePassedTexts();
+                }
+                window.userAchievements.memoryMaster = true;
+                if (passedTexts.length === memoryTexts.length) {
+                    window.userAchievements.allTestsPassed = true;
+                    feedback.innerHTML = `<div class="success">🎉 Отлично! ${correctCount}/5. Ты прошёл ВСЕ тексты! Достижение "Эрудит" получено!</div>`;
+                } else {
+                    feedback.innerHTML = `<div class="success">🎉 Молодец! ${correctCount}/5 правильных ответов. Достижение "Знаток памяти" разблокировано!</div>`;
+                }
+                if (window.currentUser) saveAchievements(window.currentUser.uid);
+                updateAchievementsUI();
+            } else {
+                feedback.innerHTML = `<div class="error">📖 Правильных ответов: ${correctCount}/5. Попробуй ещё раз, будь внимательнее!</div>`;
+            }
+        };
+
+        window.nextMemoryText = function() {
+            let next = (currentMemoryIndex + 1) % memoryTexts.length;
+            loadMemoryText(next);
+        };
+        window.prevMemoryText = function() {
+            let prev = (currentMemoryIndex - 1 + memoryTexts.length) % memoryTexts.length;
+            loadMemoryText(prev);
+        };
+
+        // Отслеживание состояния авторизации
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                window.currentUser = user;
+                passedTexts = JSON.parse(localStorage.getItem('passedMemoryTexts_' + user.uid) || '[]');
+                await loadAchievements(user.uid);
+                showPage('mainPage');
+                loadMemoryText(0);
+            } else {
+                window.currentUser = null;
+                passedTexts = [];
+                showPage('loginPage');
+            }
+        });
+
+        // Инициализация
+        window.onload = () => {
+            window.toggleAuthMode();
+            loadMemoryText(0);
+            updateAchievementsUI();
+            if (speedSlider) {
+                const initVal = 450;
+                speedSlider.value = initVal;
+                currentSpeedMs = 850 - initVal;
+                speedValue.innerText = Math.round(60000 / currentSpeedMs) + " сл/мин";
+            }
+        };
+    </script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif; }
+        body { background: linear-gradient(135deg, #f0f8ff 0%, #e3f0ff 100%); min-height: 100vh; }
+        .page { display: none; max-width: 1200px; margin: 0 auto; padding: 20px; animation: fadeIn 0.3s ease; }
+        .active-page { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card { background: white; border-radius: 32px; padding: 24px; margin-bottom: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid #cde3ff; }
+        h1, h2 { color: #0a2f6c; }
+        .logo { text-align: center; margin-bottom: 30px; }
+        .logo h1 { font-size: 2.5rem; background: linear-gradient(135deg, #0a2f6c, #3a7bd5); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .auth-card { max-width: 450px; margin: 40px auto; background: white; border-radius: 48px; padding: 35px 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .auth-card input { width: 100%; padding: 14px 18px; margin: 10px 0; border-radius: 60px; border: 2px solid #d9e8ff; font-size: 1rem; }
+        .auth-card input:focus { border-color: #0a2f6c; outline: none; }
+        .auth-card button { background: #0a2f6c; color: white; border: none; padding: 14px; width: 100%; border-radius: 60px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        .google-btn { background: white; color: #444; border: 2px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .google-btn:hover { background: #f5f5f5; }
+        .divider { text-align: center; margin: 20px 0; color: #aaa; position: relative; }
+        .divider::before, .divider::after { content: ""; position: absolute; top: 50%; width: 45%; height: 1px; background: #ddd; }
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
+        .toggle-link { text-align: center; margin-top: 20px; color: #4a6fa5; }
+        .toggle-link a { color: #0a2f6c; font-weight: bold; text-decoration: none; cursor: pointer; }
+        .running-word { background: #eef5ff; padding: 40px; text-align: center; font-size: 3rem; font-weight: bold; border-radius: 48px; margin: 20px 0; min-height: 150px; }
+        .speed-control { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; margin: 15px 0; background: #f4f9ff; padding: 12px 20px; border-radius: 60px; }
+        input[type="range"] { flex: 1; height: 6px; border-radius: 10px; background: #bdd4ff; }
+        .memory-text { background: #f9fcff; padding: 20px; border-radius: 28px; line-height: 1.6; max-height: 220px; overflow-y: auto; margin: 15px 0; }
+        .question-item { background: #eef3fc; padding: 12px 16px; border-radius: 24px; margin: 12px 0; }
+        .answer-input { width: 100%; padding: 10px 15px; border-radius: 40px; border: 1px solid #aac9ff; margin-top: 8px; }
+        button, .btn { background: #0a2f6c; color: white; border: none; padding: 10px 22px; border-radius: 40px; font-weight: bold; cursor: pointer; margin: 5px; }
+        button.outline { background: white; color: #0a2f6c; border: 2px solid #0a2f6c; }
+        .achieve { background: #f0f7ff; margin: 10px 0; padding: 12px 18px; border-radius: 60px; font-size: 0.95rem; }
+        .achieve.unlocked { background: #c8e6df; border-left: 6px solid #2e7d64; }
+        .success { background: #c8f0e1; padding: 12px; border-radius: 32px; color: #136b47; margin-top: 12px; }
+        .error { background: #ffe0db; padding: 12px; border-radius: 32px; color: #b33; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+        @media (max-width: 700px) { .running-word { font-size: 2rem; padding: 25px; } .auth-card { margin: 20px; padding: 25px; } }
+        footer { text-align: center; margin-top: 30px; color: #6c8fc7; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+<!-- СТРАНИЦА ВХОДА/РЕГИСТРАЦИИ -->
+<div id="loginPage" class="page active-page">
+    <div class="logo">
+        <h1>📖 Скорочитайка</h1>
+        <p>Развивай скорочтение и память с удовольствием!</p>
+    </div>
+    <div class="auth-card">
+        <h2 id="formTitle" style="text-align:center; margin-bottom:25px;">Войти в Скорочитайку</h2>
+        <div id="registerNameGroup" style="display:none;">
+            <input type="text" id="registerName" placeholder="Как тебя зовут?">
+        </div>
+        <input type="email" id="authEmail" placeholder="Email">
+        <input type="password" id="authPassword" placeholder="Пароль">
+        <button id="submitAuthBtn" onclick="handleAuthSubmit()">Войти</button>
+        
+        <div class="divider">или</div>
+        
+        <button onclick="signInWithGoogle()" class="google-btn" style="background:white; color:#444; display:flex; align-items:center; justify-content:center; gap:10px;">
+            <span style="font-size:1.3rem;">G</span> Войти через Google
+        </button>
+        
+        <div class="toggle-link" id="toggleAuthLink">
+            Нет аккаунта? <a href="#" onclick="toggleAuthMode(); return false;">Зарегистрироваться</a>
+        </div>
+    </div>
+    <footer>Тренируй мозг — читай быстрее!</footer>
+</div>
+
+<!-- ОСНОВНАЯ СТРАНИЦА -->
+<div id="mainPage" class="page">
+    <div class="top-bar">
+        <h1 style="font-size:1.6rem;">📖 Скорочитайка</h1>
+        <div>
+            <span style="font-weight:bold;">👋 <span id="mainUserName">Друг</span></span>
+            <button onclick="logoutUser()" class="outline" style="margin-left:15px;">🚪 Выйти</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🏃 Бегущие слова</h2>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 15px;">
+            <label><strong>Уровень:</strong></label>
+            <select id="levelSelect">
+                <option value="1">⭐ Лёгкий (3-4 буквы)</option>
+                <option value="2">⭐⭐ Средний (5-6 букв)</option>
+                <option value="3">⭐⭐⭐ Сложный (7+ букв)</option>
+            </select>
+        </div>
+        <div class="speed-control">
+            <span>⚡ Скорость:</span>
+            <input type="range" id="speedSlider" min="50" max="700" value="450">
+            <span id="speedValue" style="min-width: 90px; font-weight:bold;">~150 сл/мин</span>
+        </div>
+        <div class="running-word" id="runningWord">▶ Нажми «Старт»</div>
+        <div style="text-align: center;">
+            <button id="startRunningBtn" onclick="startRunningWords()">🚀 Старт</button>
+            <button id="stopRunningBtn" onclick="stopRunningWords()">⏹ Стоп</button>
+        </div>
+        <p style="font-size: 0.75rem; margin-top: 12px; color:#6c8fc7;">*Слова бегут автоматически. Ползунком меняй скорость прямо во время игры!</p>
+    </div>
+
+    <div class="card">
+        <h2>🧠 Тренировка памяти</h2>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+            <button onclick="prevMemoryText()">◀ Предыдущий текст</button>
+            <button onclick="nextMemoryText()">Следующий текст ▶</button>
+        </div>
+        <div id="memoryTitle" style="font-size: 1.4rem; font-weight: bold; color:#0a2f6c;"></div>
+        <div id="memoryTextBody" class="memory-text"></div>
+        <div id="memoryQuestions"></div>
+        <button onclick="checkMemoryAnswers()">✅ Проверить ответы</button>
+        <div id="memoryFeedback"></div>
+    </div>
+
+    <div class="card">
+        <h2>🏆 Твои достижения</h2>
+        <div id="achievementsList"></div>
+    </div>
+    <footer>Читай быстрее, узнавай больше! 🚀 Скорочитайка</footer>
+</div>
+
+</body>
+</html>
